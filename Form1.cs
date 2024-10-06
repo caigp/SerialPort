@@ -18,16 +18,20 @@ namespace WindowsComApp
             InitializeComponent();
 
             string[] portNames = System.IO.Ports.SerialPort.GetPortNames();
-            for (int i = 0; i < portNames.Length; i++)
+            if (portNames != null)
             {
-                comboBox1.Items.Add(portNames[i]);
+                for (int i = 0; i < portNames.Length; i++)
+                {
+                    comboBox1.Items.Add(portNames[i]);
+                }
+                comboBox1.SelectedIndex = 0;
+                comboBox1.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+                if (portNames.Length > 0)
+                {
+                    button1.Enabled = true;
+                }
             }
-            comboBox1.SelectedIndex = 0;
-            comboBox1.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            if (portNames.Length < 1)
-            {
-                button1.Enabled = false;
-            }
+            
 
             comboBox2.Items.Add("2400");
             comboBox2.Items.Add("4800");
@@ -60,6 +64,14 @@ namespace WindowsComApp
             serialPort.ReadBufferSize = 1024;
 
             textBox2.KeyPress += new KeyPressEventHandler(textBox2_KeyPress);
+
+            timer.Tick += new EventHandler(MyTimerEventProcessor);
+        }
+
+        private void MyTimerEventProcessor(object sender, EventArgs e)
+        {
+            Console.WriteLine("定时器触发...");
+            sendData();
         }
 
         private void textBox2_KeyPress(object sender, KeyPressEventArgs e)
@@ -90,6 +102,7 @@ namespace WindowsComApp
             {
                 button1.Text = "打开";
 
+                timer.Stop();
                 serialPort.Close();
 
                 comboBox1.Enabled = true;
@@ -99,8 +112,7 @@ namespace WindowsComApp
                 comboBox5.Enabled = true;
             } else
             {
-                button1.Text = "关闭";
-
+                
                 serialPort.PortName = comboBox1.SelectedItem.ToString();
                 serialPort.BaudRate = int.Parse(comboBox2.SelectedItem.ToString());
 
@@ -149,13 +161,21 @@ namespace WindowsComApp
                 }
 
                 serialPort.StopBits = stopBits;
-                serialPort.Open();
+                try
+                {
+                    serialPort.Open();
 
-                comboBox1.Enabled = false;
-                comboBox2.Enabled = false;
-                comboBox3.Enabled = false;
-                comboBox4.Enabled = false;
-                comboBox5.Enabled = false;
+                    button1.Text = "关闭";
+                    comboBox1.Enabled = false;
+                    comboBox2.Enabled = false;
+                    comboBox3.Enabled = false;
+                    comboBox4.Enabled = false;
+                    comboBox5.Enabled = false;
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("打开失败");
+                }
 
             }
         }
@@ -227,6 +247,64 @@ namespace WindowsComApp
 
         private void button3_Click(object sender, EventArgs e)
         {
+            sendData();
+            startTimer();
+        }
+
+        private void startTimer()
+        {
+            if (serialPort.IsOpen)
+            {
+                if (!checkBox1.Checked)
+                {
+                    return;
+                }
+
+                int Interval = 1000;
+                try
+                {
+                    Interval = int.Parse(textBox3.Text);
+                    if (Interval <= 0)
+                    {
+                        Interval = 1000;
+                    }
+                }
+                catch (Exception)
+                {
+                }
+
+                timer.Stop();
+                timer.Interval = Interval;
+                timer.Start();
+            }
+        }
+
+        private void radioButton1_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void radioButton2_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+            
+        }
+
+        private void textBox3_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            // 允许输入数字和退格键  
+            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void sendData()
+        {
             string text = textBox2.Text;
             if (string.IsNullOrEmpty(text.Trim()))
             {
@@ -240,23 +318,31 @@ namespace WindowsComApp
                 {
                     buffer = TextUtils.HexStringToByteArray(text);
 
-                } else
+                }
+                else
                 {
                     buffer = Encoding.UTF8.GetBytes(text);
                 }
                 serialPort.Write(buffer, 0, buffer.Length);
-                textBox2.Clear();
             }
         }
 
-        private void radioButton1_CheckedChanged(object sender, EventArgs e)
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!checkBox1.Checked)
+            {
+                timer.Stop();
+            } 
+        }
+
+        private void toolStripMenuItem3_Click_1(object sender, EventArgs e)
         {
 
         }
 
-        private void radioButton2_CheckedChanged(object sender, EventArgs e)
+        private void 关于ToolStripMenuItem_Click(object sender, EventArgs e)
         {
-
+            MessageBox.Show("菜先生制作，版本:1.0\r\nQQ:1414075698", "关于", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
